@@ -62,10 +62,95 @@ const App = () => {
     },
   });
   
+  // State for edit profile modal
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [editProfileForm, setEditProfileForm] = useState({
+    name: userProfile.name,
+    height: userProfile.height,
+    weight: userProfile.weight,
+  });
+  
   // Function to handle logout
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  // Function to update user profile
+  const updateUserProfile = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      const userId = userData?.user_id || 'User_001';
+      
+      const response = await fetch('http://localhost:5000/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          name: editProfileForm.name,
+          height: parseFloat(editProfileForm.height),
+          weight: parseFloat(editProfileForm.weight),
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+      
+      // Update local state
+      setUserProfile({
+        name: editProfileForm.name,
+        height: parseFloat(editProfileForm.height),
+        weight: parseFloat(editProfileForm.weight),
+        get bmi() {
+          return (this.weight / Math.pow(this.height / 100, 2)).toFixed(1);
+        },
+      });
+      
+      // Update localStorage
+      const updatedUserData = {
+        ...userData,
+        name: editProfileForm.name,
+        height: parseFloat(editProfileForm.height),
+        weight: parseFloat(editProfileForm.weight),
+        bmi: data.bmi,
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUserData));
+      
+      toast.success('Profile updated successfully!');
+      setIsEditProfileModalOpen(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || 'Failed to update profile');
+    }
+  };
+  
+  // Function to handle input change in edit profile form
+  const handleEditProfileChange = (e) => {
+    const { name, value } = e.target;
+    setEditProfileForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Function to open edit profile modal
+  const openEditProfileModal = () => {
+    setEditProfileForm({
+      name: userProfile.name,
+      height: userProfile.height,
+      weight: userProfile.weight,
+    });
+    setIsEditProfileModalOpen(true);
+  };
+  
+  // Function to close edit profile modal
+  const closeEditProfileModal = () => {
+    setIsEditProfileModalOpen(false);
   };
 
   // State for vital signs data
@@ -486,10 +571,18 @@ const App = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           {/* User Profile Card */}
           <div className="bg-white rounded-lg shadow p-4 w-full md:w-1/3">
-            <h2 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-blue-500 mr-2">👤</span>
-              User Profile
-            </h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold flex items-center">
+                <span className="text-blue-500 mr-2">👤</span>
+                User Profile
+              </h2>
+              <button 
+                onClick={openEditProfileModal}
+                className="text-blue-500 hover:text-blue-700 text-sm flex items-center"
+              >
+                <span className="mr-1">✏️</span> Edit
+              </button>
+            </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Name</span>
@@ -874,6 +967,67 @@ const App = () => {
           </p>
         </div>
       </footer>
+
+      {/* Edit Profile Modal */}
+      {isEditProfileModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editProfileForm.name}
+                  onChange={handleEditProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Height (cm)
+                </label>
+                <input
+                  type="number"
+                  name="height"
+                  value={editProfileForm.height}
+                  onChange={handleEditProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  name="weight"
+                  value={editProfileForm.weight}
+                  onChange={handleEditProfileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-6 space-x-3">
+              <button
+                onClick={closeEditProfileModal}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateUserProfile}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
