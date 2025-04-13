@@ -66,6 +66,8 @@ def setup_database():
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT NOT NULL UNIQUE,
+        username TEXT UNIQUE,
+        password TEXT,
         name TEXT,
         height REAL,
         weight REAL,
@@ -679,6 +681,8 @@ def create_or_update_user():
             return jsonify({"error": "Missing required user_id field"}), 400
             
         user_id = data.get('user_id')
+        username = data.get('username')
+        password = data.get('password')
         name = data.get('name')
         height = data.get('height')
         weight = data.get('weight')
@@ -704,16 +708,16 @@ def create_or_update_user():
             # Update existing user
             cursor.execute('''
             UPDATE users 
-            SET name = ?, height = ?, weight = ?, bmi = ?, updated_at = ?
+            SET username = ?, password = ?, name = ?, height = ?, weight = ?, bmi = ?, updated_at = ?
             WHERE user_id = ?
-            ''', (name, height, weight, bmi, now, user_id))
+            ''', (username, password, name, height, weight, bmi, now, user_id))
             message = "User updated successfully"
         else:
             # Create new user
             cursor.execute('''
-            INSERT INTO users (user_id, name, height, weight, bmi, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, name, height, weight, bmi, now, now))
+            INSERT INTO users (user_id, username, password, name, height, weight, bmi, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, username, password, name, height, weight, bmi, now, now))
             message = "User created successfully"
         
         conn.commit()
@@ -723,6 +727,47 @@ def create_or_update_user():
             "message": message,
             "user_id": user_id,
             "bmi": bmi
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/login', methods=['POST'])
+def login_user():
+    """Authenticate a user with username and password"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({"error": "Missing username or password"}), 400
+            
+        username = data.get('username')
+        password = data.get('password')
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", 
+                      (username, password))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({"error": "Invalid username or password"}), 401
+        
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
+        
+        # Convert to dictionary
+        user_data = dict(zip(column_names, row))
+        
+        # Don't return password in response
+        if 'password' in user_data:
+            del user_data['password']
+        
+        conn.close()
+        return jsonify({
+            "message": "Login successful",
+            "user": user_data
         })
         
     except Exception as e:
