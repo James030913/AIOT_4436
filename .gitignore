@@ -1,6 +1,6 @@
 */.venv*
 .aider*
-
+.venv
 
 # Logs
 /Smart_Health/logs
