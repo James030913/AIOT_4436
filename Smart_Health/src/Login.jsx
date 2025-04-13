@@ -55,13 +55,6 @@ const Login = () => {
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <ToastContainer />
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <img 
-            src="src/assets/icon.svg" 
-            alt="Smart Health Monitoring Icon" 
-            className="w-24 h-24"
-          />
-        </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Smart Health Monitoring
         </h2>
