@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Line, Bar } from "react-chartjs-2";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -65,7 +65,8 @@ const App = () => {
   // Function to handle logout
   const handleLogout = () => {
     localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem('appSettings');  // Clear settings as well
+    navigate('/login');  // Navigate to login page instead of root
   };
 
   // State for vital signs data
@@ -354,8 +355,24 @@ const App = () => {
     toast.success("Profile updated successfully!");
   };
 
+  // Add user authentication check
+  useEffect(() => {
+    const userDataString = localStorage.getItem('user');
+    if (!userDataString) {
+      // If no user data, redirect to login
+      navigate('/login');
+      return;
+    }
+  }, [navigate]);
+
   // Fetch data every 5 seconds
   useEffect(() => {
+    // Check if user is logged in before fetching data
+    const userDataString = localStorage.getItem('user');
+    if (!userDataString) {
+      return; // Don't fetch data if user is not logged in
+    }
+
     // Initial fetch
     fetchLatestData();
     fetchLatestAlert();
@@ -381,20 +398,26 @@ const App = () => {
     <div className="min-h-screen bg-gray-100 text-gray-800 flex flex-col">
       <ToastContainer />
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-lg">
+      <header className="bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg">
         <div className="container mx-auto p-4 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">
-              Smart Health Monitoring and Alert System
-            </h1>
-            <p className="text-sm">Team: COMP4436-25-P5</p>
+            <h1 className="text-3xl font-bold">Smart Health</h1>
+            <p className="text-sm">Health Monitoring and Alert System</p>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-blue-700"
-          >
-            Logout
-          </button>
+          <div className="flex items-center space-x-4">
+            <Link 
+              to="/settings"
+              className="px-4 py-2 bg-white text-teal-700 rounded-md hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600"
+            >
+              Settings
+            </Link>
+            <button 
+              onClick={handleLogout}
+              className="px-4 py-2 bg-white text-teal-700 rounded-md hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -569,12 +592,20 @@ const App = () => {
                 <span className="text-yellow-500 mr-2">⚠️</span>
                 Risk Level Summary
               </h2>
-              <button 
-                onClick={downloadExcelReport}
-                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm flex items-center"
-              >
-                <span className="mr-1">📊</span> Export Excel
-              </button>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => navigate('/ai-advisor')}
+                  className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center"
+                >
+                  <span className="mr-1">🤖</span> AI
+                </button>
+                <button 
+                  onClick={downloadExcelReport}
+                  className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm flex items-center"
+                >
+                  <span className="mr-1">📊</span> Export Excel
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">

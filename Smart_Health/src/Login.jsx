@@ -41,7 +41,7 @@ const Login = () => {
       
       // Navigate to main app after a short delay to show the success message
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/');
       }, 1500);
       
     } catch (error) {

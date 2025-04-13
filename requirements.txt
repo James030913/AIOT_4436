@@ -15,3 +15,7 @@ paho-mqtt
 
 # Visualization (for any reports/charts)
 matplotlib
+
+# AI Integration
+openai
+requests
