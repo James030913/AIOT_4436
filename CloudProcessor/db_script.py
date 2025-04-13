@@ -133,5 +133,62 @@ def add_data_to_db():
     
     print(f"Successfully added 7 days of data for {user_id} to the database.")
 
+def add_user_to_db():
+    """Add a demo user to the database"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if users table exists, create if not
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL UNIQUE,
+        username TEXT UNIQUE,
+        password TEXT,
+        name TEXT,
+        height REAL,
+        weight REAL,
+        bmi REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    ''')
+    
+    # Calculate BMI
+    height_m = DEMO_USER['height'] / 100  # Convert cm to meters
+    weight_kg = DEMO_USER['weight']
+    bmi = round(weight_kg / (height_m * height_m), 2)
+    
+    # Current timestamp
+    now = datetime.now().isoformat()
+    
+    # Check if user already exists
+    cursor.execute("SELECT * FROM users WHERE user_id = ?", (DEMO_USER['user_id'],))
+    existing_user = cursor.fetchone()
+    
+    if not existing_user:
+        # Insert user
+        cursor.execute('''
+        INSERT INTO users (user_id, username, password, name, height, weight, bmi, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            DEMO_USER['user_id'],
+            DEMO_USER['username'],
+            DEMO_USER['password'],
+            DEMO_USER['name'],
+            DEMO_USER['height'],
+            DEMO_USER['weight'],
+            bmi,
+            now,
+            now
+        ))
+        print(f"Added demo user '{DEMO_USER['username']}' with BMI {bmi}")
+    else:
+        print(f"Demo user '{DEMO_USER['username']}' already exists")
+    
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
     add_data_to_db()
+    add_user_to_db()
