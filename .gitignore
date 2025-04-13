@@ -3,19 +3,20 @@
 
 
 # Logs
-./Smart_Health/logs
-./Smart_Health/*.log
-./Smart_Health/npm-debug.log*
-./Smart_Health/yarn-debug.log*
-./Smart_Health/yarn-error.log*
-./Smart_Health/pnpm-debug.log*
-./Smart_Health/lerna-debug.log*
+/Smart_Health/logs
+/Smart_Health/*.log
+/Smart_Health/npm-debug.log*
+/Smart_Health/yarn-debug.log*
+/Smart_Health/yarn-error.log*
+/Smart_Health/pnpm-debug.log*
+/Smart_Health/lerna-debug.log*
 
-./Smart_Health/node_modules
-./Smart_Health/dist
-./Smart_Health/dist-ssr
-./Smart_Health/*.local
-
+/Smart_Health/node_modules
+/Smart_Health/dist
+/Smart_Health/dist-ssr
+/Smart_Health/*.local
+/CloudProcessor/feature_scaler.pkl
+/CloudProcessor/risk_prediction_model.pkl
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
