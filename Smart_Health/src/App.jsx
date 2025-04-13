@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Line, Bar } from "react-chartjs-2";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -45,15 +46,27 @@ const App = () => {
       }
     }
   }, []);
+  const navigate = useNavigate();
+  
+  // Initialize user profile from localStorage
+  const userDataString = localStorage.getItem('user');
+  const userData = userDataString ? JSON.parse(userDataString) : null;
+  
   // State for user profile
-  const [userProfile] = useState({
-    name: "John Doe",
-    height: 175, // cm
-    weight: 70, // kg
+  const [userProfile, setUserProfile] = useState({
+    name: userData?.name || "John Doe",
+    height: userData?.height || 175, // cm
+    weight: userData?.weight || 70, // kg
     get bmi() {
       return (this.weight / Math.pow(this.height / 100, 2)).toFixed(1);
     },
   });
+  
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   // State for vital signs data
   const [vitalSigns, setVitalSigns] = useState({
@@ -344,11 +357,19 @@ const App = () => {
       <ToastContainer />
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-700 to-blue-500 text-white shadow-lg">
-        <div className="container mx-auto p-4">
-          <h1 className="text-3xl font-bold">
-            Smart Health Monitoring and Alert System
-          </h1>
-          <p className="text-sm">Team: COMP4436-25-P5</p>
+        <div className="container mx-auto p-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Smart Health Monitoring and Alert System
+            </h1>
+            <p className="text-sm">Team: COMP4436-25-P5</p>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-blue-700"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
