@@ -329,6 +329,31 @@ const App = () => {
   // Reference to store the last seen alert ID
   const lastAlertIdRef = useRef(null);
 
+  // Add these new state variables near the top of the App component
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({
+    height: userProfile.height,
+    weight: userProfile.weight,
+  });
+
+  // Add this new function to handle profile updates
+  const handleProfileUpdate = () => {
+    setUserProfile(prev => ({
+      ...prev,
+      height: editedProfile.height,
+      weight: editedProfile.weight,
+    }));
+    
+    // Update localStorage
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    userData.height = editedProfile.height;
+    userData.weight = editedProfile.weight;
+    localStorage.setItem('user', JSON.stringify(userData));
+    
+    setIsEditProfileOpen(false);
+    toast.success("Profile updated successfully!");
+  };
+
   // Fetch data every 5 seconds
   useEffect(() => {
     // Initial fetch
@@ -486,10 +511,18 @@ const App = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           {/* User Profile Card */}
           <div className="bg-white rounded-lg shadow p-4 w-full md:w-1/3">
-            <h2 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-blue-500 mr-2">👤</span>
-              User Profile
-            </h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-semibold flex items-center">
+                <span className="text-blue-500 mr-2">👤</span>
+                User Profile
+              </h2>
+              <button
+                onClick={() => setIsEditProfileOpen(true)}
+                className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center"
+              >
+                ✏️ Edit
+              </button>
+            </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Name</span>
@@ -874,6 +907,59 @@ const App = () => {
           </p>
         </div>
       </footer>
+
+      {/* Add the Edit Profile Modal */}
+      {isEditProfileOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-xl font-semibold mb-4">Edit Profile</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Height (cm)
+                </label>
+                <input
+                  type="number"
+                  value={editedProfile.height}
+                  onChange={(e) => setEditedProfile(prev => ({
+                    ...prev,
+                    height: parseFloat(e.target.value) || prev.height
+                  }))}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  value={editedProfile.weight}
+                  onChange={(e) => setEditedProfile(prev => ({
+                    ...prev,
+                    weight: parseFloat(e.target.value) || prev.weight
+                  }))}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setIsEditProfileOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProfileUpdate}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
