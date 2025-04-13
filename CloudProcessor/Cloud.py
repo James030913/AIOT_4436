@@ -61,6 +61,20 @@ def setup_database():
     )
     ''')
     
+    # Create table for users
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL UNIQUE,
+        name TEXT,
+        height REAL,
+        weight REAL,
+        bmi REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    ''')
+    
     conn.commit()
     conn.close()
     print(f"Database initialized at {DB_PATH}")
@@ -626,6 +640,92 @@ def get_weekly_trends():
         
     except Exception as e:
         print(f"Error fetching weekly trends: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/user', methods=['GET'])
+def get_user_data():
+    """Retrieve user profile data for a specific user"""
+    try:
+        user_id = request.args.get('user_id', cloud_processor.user_id)
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({"error": f"No user profile found for user {user_id}"}), 404
+        
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
+        
+        # Convert to dictionary
+        user_data = dict(zip(column_names, row))
+        
+        conn.close()
+        return jsonify({"user_data": user_data})
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/user', methods=['POST'])
+def create_or_update_user():
+    """Create or update user profile data"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'user_id' not in data:
+            return jsonify({"error": "Missing required user_id field"}), 400
+            
+        user_id = data.get('user_id')
+        name = data.get('name')
+        height = data.get('height')
+        weight = data.get('weight')
+        
+        # Calculate BMI if height and weight are provided
+        bmi = None
+        if height and weight and float(height) > 0:
+            # BMI formula: weight(kg) / (height(m))^2
+            height_m = float(height) / 100  # convert cm to meters if height is in cm
+            weight_kg = float(weight)
+            bmi = round(weight_kg / (height_m * height_m), 2)
+        
+        now = datetime.now().isoformat()
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            # Update existing user
+            cursor.execute('''
+            UPDATE users 
+            SET name = ?, height = ?, weight = ?, bmi = ?, updated_at = ?
+            WHERE user_id = ?
+            ''', (name, height, weight, bmi, now, user_id))
+            message = "User updated successfully"
+        else:
+            # Create new user
+            cursor.execute('''
+            INSERT INTO users (user_id, name, height, weight, bmi, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, name, height, weight, bmi, now, now))
+            message = "User created successfully"
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "message": message,
+            "user_id": user_id,
+            "bmi": bmi
+        })
+        
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/risk_levels', methods=['GET'])
