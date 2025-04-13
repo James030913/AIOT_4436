@@ -46,6 +46,15 @@ cd CloudProcessor
 python db_script.py
 ```
 
+### 5. Train the Machine Learning Model
+
+Before running the application, you need to train the machine learning model:
+
+```bash
+cd CloudProcessor
+python train.py
+```
+
 ## Running the Application
 
 ### 1. Start the Backend Service
