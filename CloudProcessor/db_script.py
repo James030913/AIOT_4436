@@ -6,6 +6,16 @@ import numpy as np
 # Database configuration
 DB_PATH = 'health_data.db'
 
+# Demo user data
+DEMO_USER = {
+    'user_id': 'User_001',
+    'username': 'demo',
+    'password': 'password',
+    'name': 'John Doe',
+    'height': 175,  # cm
+    'weight': 70    # kg
+}
+
 # Normal ranges for vital signs
 NORMAL_RANGES = {
     'heart_rate': (60, 100),
