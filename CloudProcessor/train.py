@@ -1,131 +1,184 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, roc_auc_score
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
 
-# --- 1. Load Data ---
-# Replace 'vital_signs_dataset.csv' with the actual path to your file
-try:
-    df = pd.read_csv('vital_signs.csv')
-    print("Dataset loaded successfully.")
-    # Display first few rows and info to check column names
-    print(df.head())
-    print(df.info())
-except FileNotFoundError:
-    print("Error: Dataset file not found. Make sure 'vital_signs_dataset.csv' is in the correct directory.")
-    exit()
-except Exception as e:
-    print(f"An error occurred loading the data: {e}")
-    exit()
+# Step 1: Load and prepare your data
+# Assuming your data is in a CSV file - update the filename as needed
+df = pd.read_csv('vital_signs.csv')
 
-# --- 2. Select Features (X) and Target (y) ---
-# Define the input features you want to use
-feature_cols = [
-    'Heart Rate',
-    'Systolic Blood Pressure',
-    'Diastolic Blood Pressure',
-    'Body Temperature',
-    'Oxygen Saturation'
-]
-target_col = 'Risk Category'
+# Display basic information about the dataset
+print("Dataset Shape:", df.shape)
+print("\nData Preview:")
+print(df.head())
 
-# Verify columns exist in the DataFrame
-missing_features = [col for col in feature_cols if col not in df.columns]
-if missing_features:
-    print(f"Error: The following feature columns are missing from the CSV: {missing_features}")
-    exit()
-if target_col not in df.columns:
-    print(f"Error: The target column '{target_col}' is missing from the CSV.")
-    exit()
+# Check for missing values
+missing_values = df.isnull().sum()
+print("\nMissing Values:")
+print(missing_values[missing_values > 0])
 
-X = df[feature_cols]
-y = df[target_col]
+# Drop unnecessary columns
+df_model = df.drop(['Patient ID', 'Timestamp'], axis=1)
 
-print(f"\nSelected Features (X shape): {X.shape}")
-print(f"Selected Target (y shape): {y.shape}")
-print(f"Target value counts:\n{y.value_counts()}")
+# Convert categorical variables
+df_model = pd.get_dummies(df_model, columns=['Gender'], drop_first=True)
+risk_mapping = {'Low Risk': 0, 'High Risk': 1}
+df_model['Risk Category'] = df_model['Risk Category'].map(risk_mapping)
 
-# --- 3. Encode Target Variable ---
-# Convert 'Low Risk'/'High Risk' into 0/1
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
-# Check encoding: 0 might be 'High Risk', 1 might be 'Low Risk' or vice-versa
-# Print the mapping to be sure
-print(f"\nTarget variable encoding: {list(label_encoder.classes_)} -> {list(range(len(label_encoder.classes_)))}")
-# Example: Target variable encoding: ['High Risk', 'Low Risk'] -> [0, 1] means High Risk=0, Low Risk=1
+# Step 2: Define features and target
+# Select the features you want to use
+X = df_model[['Heart Rate', 'Systolic Blood Pressure', 'Diastolic Blood Pressure', 
+              'Body Temperature', 'Oxygen Saturation']]
 
-# --- 4. Split Data ---
-# Split into 80% training and 20% testing data
-# stratify=y_encoded ensures the proportion of High/Low Risk is similar in train and test sets
-# random_state makes the split reproducible
+# Target variable
+y = df_model['Risk Category']
+
+# Print class distribution
+print("\nClass Distribution:")
+print(y.value_counts())
+print(f"Class imbalance ratio: {y.value_counts()[0] / y.value_counts()[1]:.2f}")
+
+# Step 3: Scale the features
+# Initialize and fit the scaler
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Save the scaler for future predictions
+scaler_filename = 'feature_scaler.pkl'
+joblib.dump(scaler, scaler_filename)
+print(f"Scaler saved as '{scaler_filename}'")
+
+# Step 4: Split the data
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y_encoded, test_size=0.20, random_state=42, stratify=y_encoded
+    X_scaled, y, test_size=0.2, random_state=42, stratify=y
+)
+print(f"\nTraining set size: {X_train.shape[0]}")
+print(f"Testing set size: {X_test.shape[0]}")
+
+# Step 5: Train the Random Forest model
+# Create and train the model
+rf = RandomForestClassifier(
+    n_estimators=100,        # Number of trees
+    max_depth=None,          # Maximum depth of trees
+    min_samples_split=2,     # Minimum samples required to split a node
+    min_samples_leaf=1,      # Minimum samples required at each leaf node
+    random_state=42,         # For reproducibility
+    n_jobs=-1                # Use all available cores
 )
 
-print(f"\nTraining data shape: X={X_train.shape}, y={y_train.shape}")
-print(f"Testing data shape: X={X_test.shape}, y={y_test.shape}")
+print("\nTraining Random Forest model...")
+rf.fit(X_train, y_train)
+print("Model training complete!")
 
-# --- 5. Feature Scaling ---
-# Scale numerical features to have zero mean and unit variance
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train) # Fit and transform the training data
-X_test_scaled = scaler.transform(X_test)     # Only transform the test data (use scaling learned from train)
+# Step 6: Make predictions
+y_pred = rf.predict(X_test)
+y_prob = rf.predict_proba(X_test)[:, 1]  # Probability of high risk
 
-print("\nFeature scaling applied.")
-
-# --- 6. Instantiate Model ---
-# Create a Random Forest Classifier model
-# n_estimators=100 is a common starting point (number of trees)
-# random_state ensures reproducibility of the model training
-rf_model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-# using class_weight='balanced' can help if one risk category is much more frequent than the other
-
-print(f"\nInstantiated Model: {type(rf_model).__name__}")
-
-# --- 7. Train Model ---
-print("Training the model...")
-rf_model.fit(X_train_scaled, y_train)
-print("Model training complete.")
-
-# --- 8. Evaluate Model ---
-print("\nEvaluating the model on the test set...")
-
-# Make predictions on the scaled test data
-y_pred = rf_model.predict(X_test_scaled)
-# Get probability predictions for AUC calculation (needed for the positive class)
-y_pred_proba = rf_model.predict_proba(X_test_scaled)[:, 1] # Probability of class '1'
-
-# Calculate Accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print(f"\nAccuracy: {accuracy:.4f}")
-
-# Generate Confusion Matrix
-# Rows: Actual, Columns: Predicted
-# [[TN, FP],
-#  [FN, TP]]  (assuming 0=Negative, 1=Positive - check your encoding!)
-print("\nConfusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
-
-# Generate Classification Report (Precision, Recall, F1-score)
-# Make sure to map the 0/1 back to High/Low Risk for readability
-target_names = label_encoder.classes_
+# Step 7: Evaluate the model
+print("\n--- Model Evaluation ---")
 print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=target_names))
+print(classification_report(y_test, y_pred))
 
-# Calculate AUC-ROC
-# AUC measures the model's ability to distinguish between the classes
-# Closer to 1 is better, 0.5 is random guessing
-try:
-    auc_score = roc_auc_score(y_test, y_pred_proba)
-    print(f"\nAUC-ROC Score: {auc_score:.4f}")
-except ValueError as e:
-    print(f"\nCould not calculate AUC-ROC: {e}. This might happen if only one class is present in y_test or predictions.")
+# Confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+            xticklabels=['Low Risk', 'High Risk'],
+            yticklabels=['Low Risk', 'High Risk'])
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.savefig('confusion_matrix.png')
+plt.close()
+print("Confusion matrix saved as 'confusion_matrix.png'")
 
-# --- Optional: Feature Importances ---
-# Random Forest can tell you which features it found most important
-importances = rf_model.feature_importances_
-feature_importance_df = pd.DataFrame({'Feature': feature_cols, 'Importance': importances})
-feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
-print("\nFeature Importances:")
-print(feature_importance_df)
+# ROC AUC Score
+roc_auc = roc_auc_score(y_test, y_prob)
+print(f"\nROC AUC Score: {roc_auc:.4f}")
+
+# Cross-validation
+cv_scores = cross_val_score(rf, X_scaled, y, cv=5, scoring='roc_auc')
+print(f"\nCross-validation ROC AUC: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+
+# Feature importance
+feature_importance = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': rf.feature_importances_
+}).sort_values('Importance', ascending=False)
+
+print("\nFeature Importance:")
+print(feature_importance)
+
+plt.figure(figsize=(10, 6))
+sns.barplot(x='Importance', y='Feature', data=feature_importance)
+plt.title('Feature Importance')
+plt.tight_layout()
+plt.savefig('feature_importance.png')
+plt.close()
+print("Feature importance plot saved as 'feature_importance.png'")
+
+# Step 8: Save the model
+# Save with the expected filename for your prediction function
+model_filename = 'risk_prediction_model.pkl'
+joblib.dump(rf, model_filename)
+print(f"\nModel saved as '{model_filename}'")
+
+# Step 9: Test your prediction function
+def predict_risk(heart_rate, systolic_bp, diastolic_bp, body_temp, oxygen_sat):
+    # Load the model and scaler
+    try:
+        model = joblib.load('risk_prediction_model.pkl')
+        scaler = joblib.load('feature_scaler.pkl')
+        
+        # Prepare the input data
+        patient_data = [[heart_rate, systolic_bp, diastolic_bp, body_temp, oxygen_sat]]
+        patient_data_scaled = scaler.transform(patient_data)
+        
+        # Make prediction
+        prediction = model.predict(patient_data_scaled)
+        probability = model.predict_proba(patient_data_scaled)
+        
+        # Convert numeric prediction back to label
+        risk_labels = {v: k for k, v in risk_mapping.items()}
+        predicted_label = risk_labels[prediction[0]]
+        
+        return {
+            'risk_category': predicted_label,
+            'probability': probability[0][list(model.classes_).index(prediction[0])]
+        }
+    except Exception as e:
+        print(f"Error in risk prediction: {e}")
+        return {
+            'risk_category': 'Unknown',
+            'probability': 0.0
+        }
+
+# Example usage with the sample data provided
+print("\n--- Testing Prediction Function ---")
+sample_heart_rate = 60
+sample_systolic_bp = 124
+sample_diastolic_bp = 86
+sample_body_temp = 36.86
+sample_oxygen_sat = 95.70
+
+prediction_result = predict_risk(
+    heart_rate=sample_heart_rate,
+    systolic_bp=sample_systolic_bp,
+    diastolic_bp=sample_diastolic_bp,
+    body_temp=sample_body_temp,
+    oxygen_sat=sample_oxygen_sat
+)
+
+print(f"Input values:")
+print(f"  Heart Rate: {sample_heart_rate} bpm")
+print(f"  Systolic BP: {sample_systolic_bp} mmHg")
+print(f"  Diastolic BP: {sample_diastolic_bp} mmHg")
+print(f"  Body Temperature: {sample_body_temp}°C")
+print(f"  Oxygen Saturation: {sample_oxygen_sat}%")
+print(f"\nPredicted Risk Category: {prediction_result['risk_category']}")
+print(f"Probability: {prediction_result['probability']:.4f} ({prediction_result['probability']*100:.2f}%)")

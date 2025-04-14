@@ -10,8 +10,6 @@ import threading
 import joblib
 import sqlite3
 import os
-import requests
-import openai
 
 # --- Configuration ---
 MQTT_BROKER = "test.mosquitto.org"
@@ -19,11 +17,11 @@ MQTT_PORT = 1883
 MQTT_TOPIC_SUB = "health/user_001/vitals"  # Topic to subscribe to
 FLASK_PORT = 5000
 DB_PATH = 'health_data.db'
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', 'your-api-key-here')  # Set your API key in environment variables
 
 # Feature list
 ML_FEATURES = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'temperature', 'oxygen_saturation']
 
+risk_mapping = {'Low Risk': 0, 'High Risk': 1}
 # Alert thresholds (simple rules)
 ALERT_THRESHOLDS = {
     'heart_rate': (45, 120), 'systolic_bp': (85, 140), 'diastolic_bp': (55, 90),
@@ -367,9 +365,12 @@ def predict_risk(heart_rate, systolic_bp, diastolic_bp, body_temp, oxygen_sat):
         # Make prediction
         prediction = model.predict(patient_data_scaled)
         probability = model.predict_proba(patient_data_scaled)
+        # Convert numeric prediction back to label
+        risk_labels = {v: k for k, v in risk_mapping.items()}
+        predicted_label = risk_labels[prediction[0]]
         
         return {
-            'risk_category': prediction[0],
+            'risk_category': predicted_label,
             'probability': probability[0][list(model.classes_).index(prediction[0])]
         }
     except Exception as e:
@@ -888,110 +889,6 @@ def get_risk_levels():
     except Exception as e:
         print(f"Error calculating risk levels: {e}")
         return jsonify({"error": str(e)}), 500
-
-@app.route('/ai_analysis', methods=['POST'])
-def ai_health_analysis():
-    """
-    Endpoint to analyze health data using a medical-trained large language model.
-    Expects a JSON payload with user data, current health metrics, historical data, and risk levels.
-    Returns AI-generated health analysis and recommendations.
-    """
-    try:
-        data = request.json
-        
-        # Validate required data
-        if not data or 'user_data' not in data or 'current_health' not in data:
-            return jsonify({'error': 'Missing required data'}), 400
-        
-        # Extract data for analysis
-        user_data = data.get('user_data', {})
-        current_health = data.get('current_health', {})
-        historical_data = data.get('historical_data', [])
-        risk_levels = data.get('risk_levels', {})
-        
-        # Prepare prompt for the AI model
-        prompt = f"""
-        You are a medical AI assistant trained to analyze health data and provide personalized medical advice.
-        Please analyze the following health data and provide a comprehensive health assessment and recommendations.
-        
-        User Information:
-        - Age: {user_data.get('age', 'Unknown')}
-        - Gender: {user_data.get('gender', 'Unknown')}
-        - Medical History: {user_data.get('medical_history', [])}
-        - Medications: {user_data.get('medications', [])}
-        
-        Current Health Metrics:
-        - Heart Rate: {current_health.get('heart_rate', 'Unknown')} BPM
-        - Blood Pressure: {current_health.get('blood_pressure', {}).get('systolic', 'Unknown')}/{current_health.get('blood_pressure', {}).get('diastolic', 'Unknown')} mmHg
-        - Body Temperature: {current_health.get('temperature', 'Unknown')} °C
-        - Oxygen Saturation: {current_health.get('oxygen_saturation', 'Unknown')}%
-        
-        Historical Data:
-        {json.dumps(historical_data, indent=2)}
-        
-        Risk Levels:
-        - Today: {risk_levels.get('today', 'Unknown')}
-        - Weekly: {risk_levels.get('weekly', 'Unknown')}
-        - Monthly: {risk_levels.get('monthly', 'Unknown')}
-        
-        Please provide a comprehensive health analysis with the following sections:
-        1. Overall Health Assessment
-        2. Health Metrics Analysis
-        3. Risk Assessment
-        4. Recommendations
-        5. Lifestyle Suggestions
-        
-        Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions
-        """
-        
-        # Call OpenAI API
-        try:
-            # Set your API key
-            openai.api_key = OPENAI_API_KEY
-            
-            # Call the API
-            response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",  # Use a medical-trained model if available
-                messages=[
-                    {"role": "system", "content": "You are a medical AI assistant trained to analyze health data and provide personalized medical advice."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2000
-            )
-            
-            # Extract the response
-            ai_response = response.choices[0].message.content
-            
-            # Parse the JSON response
-            try:
-                analysis_result = json.loads(ai_response)
-            except json.JSONDecodeError:
-                # If the response is not valid JSON, create a structured response
-                analysis_result = {
-                    "overallAssessment": "Unable to parse AI response. Raw response: " + ai_response[:500],
-                    "metricsAnalysis": "Please try again later.",
-                    "riskAssessment": "Please try again later.",
-                    "recommendations": "Please try again later.",
-                    "lifestyleSuggestions": "Please try again later."
-                }
-            
-            return jsonify(analysis_result)
-            
-        except Exception as e:
-            # Fallback to a mock response if the API call fails
-            print(f"Error calling AI API: {str(e)}")
-            return jsonify({
-                "overallAssessment": "Based on your health data, your overall health appears to be in good condition. Your vital signs are within normal ranges, and your activity level is moderate.",
-                "metricsAnalysis": "Your heart rate is within the normal range. Your blood pressure readings are healthy. Your body temperature is normal. Your oxygen saturation is excellent, indicating good respiratory function.",
-                "riskAssessment": "Your current risk level is low. There are no immediate health concerns based on the data provided. Continue monitoring your health metrics regularly.",
-                "recommendations": "1. Continue your current exercise routine. 2. Maintain a balanced diet. 3. Ensure adequate sleep (7-9 hours per night). 4. Stay hydrated throughout the day.",
-                "lifestyleSuggestions": "Consider incorporating more cardiovascular exercises into your routine. Try meditation or mindfulness practices to reduce stress. Focus on maintaining a consistent sleep schedule."
-            })
-            
-    except Exception as e:
-        print(f"Error in AI analysis: {str(e)}")
-        return jsonify({'error': 'Failed to analyze health data'}), 500
 
 # --- Main Execution ---
 if __name__ == '__main__':
