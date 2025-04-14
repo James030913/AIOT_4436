@@ -933,7 +933,7 @@ const App = () => {
       <footer className="bg-gray-800 text-white p-4 mt-6">
         <div className="container mx-auto text-center">
           <p>
-            © 2023 COMP4436-25-P5 Team | Smart Health Monitoring and Alert
+            © 2025 COMP4436-25-P5 Team | Smart Health Monitoring and Alert
             System
           </p>
         </div>
