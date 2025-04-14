@@ -11,7 +11,6 @@ import joblib
 import sqlite3
 import os
 import requests
-from openai import OpenAI
 
 # --- Configuration ---
 MQTT_BROKER = "test.mosquitto.org"
@@ -953,28 +952,42 @@ def ai_health_analysis():
         api_key = openai_settings.get('api_key', OPENAI_API_KEY)
         model = openai_settings.get('model', 'deepseek-chat')
         
-        # Call OpenAI API with custom endpoint
+        # Call AI API using requests instead of OpenAI client
         try:
-            # Create OpenAI client with custom base URL
-            client = OpenAI(
-                api_key=api_key,
-                base_url=api_endpoint
-            )
+            # Prepare headers and payload
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
             
-            # Call the API using OpenAI client
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
+            payload = {
+                "model": model,
+                "messages": [
                     {"role": "system", "content": "You are a medical AI assistant trained to analyze health data and provide personalized medical advice."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                max_tokens=2000,
-                stream=False
+                "temperature": 0.7,
+                "max_tokens": 2000
+            }
+            
+            # Make request to the API endpoint
+            response = requests.post(
+                f"{api_endpoint}/chat/completions",
+                headers=headers,
+                json=payload
             )
             
-            # Extract content from the response
-            ai_response = response.choices[0].message.content
+            # Check if request was successful
+            if response.status_code == 200:
+                response_data = response.json()
+                
+                # Extract content from the API response
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    ai_response = response_data["choices"][0].get("message", {}).get("content", "")
+                else:
+                    ai_response = response_data.get("content", "")
+            else:
+                raise Exception(f"API request failed with status code: {response.status_code}, response: {response.text}")
             
             # Parse the JSON response
             try:
@@ -988,15 +1001,12 @@ def ai_health_analysis():
                     "recommendations": "Please try again later.",
                     "lifestyleSuggestions": "Please try again later."
                 }
-        except Exception as e:
-            print(f"API request failed: {str(e)}")
-            raise
             
             return jsonify(analysis_result)
             
         except Exception as e:
             # Fallback to a mock response if the API call fails
-            print(f"Error calling custom AI API: {str(e)}")
+            print(f"Error calling AI API: {str(e)}")
             return jsonify({
                 "overallAssessment": "Based on your health data, your overall health appears to be in good condition. Your vital signs are within normal ranges, and your activity level is moderate.",
                 "metricsAnalysis": "Your heart rate is within the normal range. Your blood pressure readings are healthy. Your body temperature is normal. Your oxygen saturation is excellent, indicating good respiratory function.",
