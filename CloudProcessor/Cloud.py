@@ -944,7 +944,7 @@ def ai_health_analysis():
         4. Recommendations
         5. Lifestyle Suggestions
         
-        Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions
+        Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions, response with ```json
         """
         
         # Get OpenAI settings from the request payload
@@ -989,7 +989,7 @@ def ai_health_analysis():
                     ai_response = response_data["choices"][0].get("message", {}).get("content", "")
                 else:
                     ai_response = response_data.get("content", "")
-                
+                print(f"API request failed with status code: {response.status_code}")
                 # Parse the JSON response
                 try:
                     analysis_result = json.loads(ai_response)
