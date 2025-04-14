@@ -949,47 +949,32 @@ def ai_health_analysis():
         
         # Get OpenAI settings from the request payload
         openai_settings = data.get('openai_settings', {})
-        api_endpoint = openai_settings.get('api_endpoint', 'https://api.james913.xyz/v1/completions')
+        api_endpoint = openai_settings.get('api_endpoint', 'https://api.james913.xyz')
         api_key = openai_settings.get('api_key', OPENAI_API_KEY)
-        model = openai_settings.get('model', 'gpt-4o-mini')
+        model = openai_settings.get('model', 'deepseek-chat')
         
-        # Call custom API endpoint
+        # Call OpenAI API with custom endpoint
         try:
-            # Prepare request payload for the API
-            payload = {
-                "model": model,
-                "messages": [
+            # Create OpenAI client with custom base URL
+            client = OpenAI(
+                api_key=api_key,
+                base_url=api_endpoint
+            )
+            
+            # Call the API using OpenAI client
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
                     {"role": "system", "content": "You are a medical AI assistant trained to analyze health data and provide personalized medical advice."},
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.7,
-                "max_tokens": 2000
-            }
-            
-            # Make HTTP request to the specified API endpoint
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            }
-            
-            # Call the API using requests
-            response = requests.post(
-                api_endpoint + "/completions",  # Ensure we're hitting the completions endpoint
-                headers=headers,
-                json=payload
+                temperature=0.7,
+                max_tokens=2000,
+                stream=False
             )
             
-            # Check if request was successful
-            if response.status_code == 200:
-                response_data = response.json()
-                
-                # Extract content from the API response
-                # Adapt this based on your custom API's response format
-                if "choices" in response_data and len(response_data["choices"]) > 0:
-                    ai_response = response_data["choices"][0].get("message", {}).get("content", "")
-                else:
-                    ai_response = response_data.get("content", "")
-                print(f"API request failed with status code: {response.status_code}")
+            # Extract content from the response
+            ai_response = response.choices[0].message.content
                 # Parse the JSON response
                 try:
                     analysis_result = json.loads(ai_response)
