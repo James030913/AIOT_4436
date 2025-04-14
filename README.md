@@ -34,7 +34,7 @@ pip install flask flask-cors numpy pandas scikit-learn threading
 
 ```bash
 cd Simulator
-pip install requests numpy random time
+pip install requests numpy
 ```
 
 ### 4. Initialize Database
