@@ -20,6 +20,8 @@ MQTT_TOPIC_SUB = "health/user_001/vitals"  # Topic to subscribe to
 FLASK_PORT = 5000
 DB_PATH = 'health_data.db'
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', 'your-api-key-here')  # Set your API key in environment variables
+# Custom API endpoint for AI analysis
+CUSTOM_AI_API_ENDPOINT = "https://api.james913.xyz/v1/completions"
 # Feature list
 ML_FEATURES = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'temperature', 'oxygen_saturation']
 
@@ -947,43 +949,64 @@ def ai_health_analysis():
         Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions
         """
         
-        # Call OpenAI API
+        # Call custom API endpoint instead of OpenAI
         try:
-            # Set your API key
-            openai.api_key = OPENAI_API_KEY
-            
-            # Call the API
-            response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",  # Use a medical-trained model if available
-                messages=[
+            # Prepare request payload for the custom API
+            payload = {
+                "model": "health-analysis",
+                "messages": [
                     {"role": "system", "content": "You are a medical AI assistant trained to analyze health data and provide personalized medical advice."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                max_tokens=2000
+                "temperature": 0.7,
+                "max_tokens": 2000
+            }
+            
+            # Make HTTP request to custom API endpoint
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {OPENAI_API_KEY}"  # Use the same API key for auth
+            }
+            
+            # Call the API using requests instead of OpenAI client
+            response = requests.post(
+                CUSTOM_AI_API_ENDPOINT,
+                headers=headers,
+                json=payload
             )
             
-            # Extract the response
-            ai_response = response.choices[0].message.content
-            
-            # Parse the JSON response
-            try:
-                analysis_result = json.loads(ai_response)
-            except json.JSONDecodeError:
-                # If the response is not valid JSON, create a structured response
-                analysis_result = {
-                    "overallAssessment": "Unable to parse AI response. Raw response: " + ai_response[:500],
-                    "metricsAnalysis": "Please try again later.",
-                    "riskAssessment": "Please try again later.",
-                    "recommendations": "Please try again later.",
-                    "lifestyleSuggestions": "Please try again later."
-                }
+            # Check if request was successful
+            if response.status_code == 200:
+                response_data = response.json()
+                
+                # Extract content from the API response
+                # Adapt this based on your custom API's response format
+                if "choices" in response_data and len(response_data["choices"]) > 0:
+                    ai_response = response_data["choices"][0].get("message", {}).get("content", "")
+                else:
+                    ai_response = response_data.get("content", "")
+                
+                # Parse the JSON response
+                try:
+                    analysis_result = json.loads(ai_response)
+                except json.JSONDecodeError:
+                    # If the response is not valid JSON, create a structured response
+                    analysis_result = {
+                        "overallAssessment": "Unable to parse AI response. Raw response: " + ai_response[:500],
+                        "metricsAnalysis": "Please try again later.",
+                        "riskAssessment": "Please try again later.",
+                        "recommendations": "Please try again later.",
+                        "lifestyleSuggestions": "Please try again later."
+                    }
+            else:
+                print(f"API request failed with status code: {response.status_code}")
+                raise Exception(f"API request failed: {response.text}")
             
             return jsonify(analysis_result)
             
         except Exception as e:
             # Fallback to a mock response if the API call fails
-            print(f"Error calling AI API: {str(e)}")
+            print(f"Error calling custom AI API: {str(e)}")
             return jsonify({
                 "overallAssessment": "Based on your health data, your overall health appears to be in good condition. Your vital signs are within normal ranges, and your activity level is moderate.",
                 "metricsAnalysis": "Your heart rate is within the normal range. Your blood pressure readings are healthy. Your body temperature is normal. Your oxygen saturation is excellent, indicating good respiratory function.",
