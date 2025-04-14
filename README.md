@@ -27,7 +27,7 @@ npm install
 
 ```bash
 cd CloudProcessor
-pip install flask flask-cors numpy pandas scikit-learn threading
+pip install flask flask-cors numpy pandas scikit-learn thread
 ```
 
 ### 3. Simulator Setup
