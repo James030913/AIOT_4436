@@ -27,14 +27,16 @@ npm install
 
 ```bash
 cd CloudProcessor
-pip install flask flask-cors numpy pandas scikit-learn threading
+pip install flask flask-cors numpy pandas scikit-learn
+pip install -U thread
+pip install openpyxl
 ```
 
 ### 3. Simulator Setup
 
 ```bash
 cd Simulator
-pip install requests numpy random time
+pip install requests numpy
 ```
 
 ### 4. Initialize Database
