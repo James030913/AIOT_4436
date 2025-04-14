@@ -943,7 +943,7 @@ def ai_health_analysis():
         4. Recommendations
         5. Lifestyle Suggestions
         
-        Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions, response without ```json
+        Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions, for each of them only should have text but not array, response without ```json
         """
         
         # Get OpenAI settings from the request payload
