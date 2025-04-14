@@ -20,8 +20,6 @@ MQTT_TOPIC_SUB = "health/user_001/vitals"  # Topic to subscribe to
 FLASK_PORT = 5000
 DB_PATH = 'health_data.db'
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', 'your-api-key-here')  # Set your API key in environment variables
-# Custom API endpoint for AI analysis
-CUSTOM_AI_API_ENDPOINT = "https://api.james913.xyz/v1/completions"
 # Feature list
 ML_FEATURES = ['heart_rate', 'systolic_bp', 'diastolic_bp', 'temperature', 'oxygen_saturation']
 
@@ -949,11 +947,17 @@ def ai_health_analysis():
         Format your response as a JSON object with these exact keys: overallAssessment, metricsAnalysis, riskAssessment, recommendations, lifestyleSuggestions
         """
         
-        # Call custom API endpoint instead of OpenAI
+        # Get OpenAI settings from the request payload
+        openai_settings = data.get('openai_settings', {})
+        api_endpoint = openai_settings.get('api_endpoint', 'https://api.james913.xyz/v1/completions')
+        api_key = openai_settings.get('api_key', OPENAI_API_KEY)
+        model = openai_settings.get('model', 'gpt-4o-mini')
+        
+        # Call custom API endpoint
         try:
-            # Prepare request payload for the custom API
+            # Prepare request payload for the API
             payload = {
-                "model": "health-analysis",
+                "model": model,
                 "messages": [
                     {"role": "system", "content": "You are a medical AI assistant trained to analyze health data and provide personalized medical advice."},
                     {"role": "user", "content": prompt}
@@ -962,15 +966,15 @@ def ai_health_analysis():
                 "max_tokens": 2000
             }
             
-            # Make HTTP request to custom API endpoint
+            # Make HTTP request to the specified API endpoint
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {OPENAI_API_KEY}"  # Use the same API key for auth
+                "Authorization": f"Bearer {api_key}"
             }
             
-            # Call the API using requests instead of OpenAI client
+            # Call the API using requests
             response = requests.post(
-                CUSTOM_AI_API_ENDPOINT,
+                api_endpoint + "/completions",  # Ensure we're hitting the completions endpoint
                 headers=headers,
                 json=payload
             )
