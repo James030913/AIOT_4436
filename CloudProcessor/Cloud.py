@@ -975,21 +975,22 @@ def ai_health_analysis():
             
             # Extract content from the response
             ai_response = response.choices[0].message.content
-                # Parse the JSON response
-                try:
-                    analysis_result = json.loads(ai_response)
-                except json.JSONDecodeError:
-                    # If the response is not valid JSON, create a structured response
-                    analysis_result = {
-                        "overallAssessment": "Unable to parse AI response. Raw response: " + ai_response[:500],
-                        "metricsAnalysis": "Please try again later.",
-                        "riskAssessment": "Please try again later.",
-                        "recommendations": "Please try again later.",
-                        "lifestyleSuggestions": "Please try again later."
-                    }
-            else:
-                print(f"API request failed with status code: {response.status_code}")
-                raise Exception(f"API request failed: {response.text}")
+            
+            # Parse the JSON response
+            try:
+                analysis_result = json.loads(ai_response)
+            except json.JSONDecodeError:
+                # If the response is not valid JSON, create a structured response
+                analysis_result = {
+                    "overallAssessment": "Unable to parse AI response. Raw response: " + ai_response[:500],
+                    "metricsAnalysis": "Please try again later.",
+                    "riskAssessment": "Please try again later.",
+                    "recommendations": "Please try again later.",
+                    "lifestyleSuggestions": "Please try again later."
+                }
+        except Exception as e:
+            print(f"API request failed: {str(e)}")
+            raise
             
             return jsonify(analysis_result)
             
