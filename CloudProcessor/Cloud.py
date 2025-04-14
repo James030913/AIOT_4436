@@ -11,7 +11,7 @@ import joblib
 import sqlite3
 import os
 import requests
-import openai
+from openai import OpenAI
 
 # --- Configuration ---
 MQTT_BROKER = "test.mosquitto.org"
