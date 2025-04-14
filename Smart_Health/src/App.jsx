@@ -324,6 +324,9 @@ const App = () => {
     monthly: { level: "Low", count: 0, probability: 0 },
   });
 
+  // State for active tab selection
+  const [activeTab, setActiveTab] = useState("trends"); // "trends" or "baseline"
+
   // State for alerts
   const [alerts, setAlerts] = useState([]);
 
@@ -689,242 +692,276 @@ const App = () => {
           </div>
         </div>
 
-        {/* Aggregated Weekly Trends */}
-        <h2 className="text-2xl font-bold mb-4">Weekly Health Trends</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Heart Rate Chart */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">Heart Rate Trend</h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Line
-                data={{
-                  labels: historicalData.dates,
-                  datasets: [
-                    {
-                      label: "Heart Rate (BPM)",
-                      data: historicalData.heartRate,
-                      borderColor: "rgb(239, 68, 68)",
-                      backgroundColor: "rgba(239, 68, 68, 0.2)",
-                      fill: true,
-                      tension: 0.4,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      min: 60,
-                      max: 100,
-                    },
-                  },
-                  plugins: {
-                    legend: {
-                      display: true,
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: function (context) {
-                          return `Heart Rate: ${context.parsed.y} BPM`;
-                        },
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
+        {/* Combined Charts Section with Tabs */}
+        <div className="bg-white rounded-lg shadow mb-6 overflow-hidden">
+          {/* Tab Navigation */}
+          <div className="flex border-b">
+            <button
+              className={`flex-1 text-center py-4 font-medium text-lg transition-colors duration-300 ${
+                activeTab === "trends"
+                  ? "text-teal-600 border-b-2 border-teal-500 bg-teal-50"
+                  : "text-gray-500 hover:text-teal-600 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveTab("trends")}
+            >
+              <span className="mr-2">📈</span> Weekly Health Trends
+            </button>
+            <button
+              className={`flex-1 text-center py-4 font-medium text-lg transition-colors duration-300 ${
+                activeTab === "baseline"
+                  ? "text-teal-600 border-b-2 border-teal-500 bg-teal-50"
+                  : "text-gray-500 hover:text-teal-600 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveTab("baseline")}
+            >
+              <span className="mr-2">📊</span> Baseline Health Indices
+            </button>
           </div>
 
-          {/* Blood Pressure Chart */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">Blood Pressure Trend</h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Line
-                data={{
-                  labels: historicalData.dates,
-                  datasets: [
-                    {
-                      label: "Systolic (mmHg)",
-                      data: historicalData.systolic,
-                      borderColor: "rgb(239, 68, 68)",
-                      backgroundColor: "rgba(239, 68, 68, 0.1)",
-                      tension: 0.4,
-                    },
-                    {
-                      label: "Diastolic (mmHg)",
-                      data: historicalData.diastolic,
-                      borderColor: "rgb(59, 130, 246)",
-                      backgroundColor: "rgba(59, 130, 246, 0.1)",
-                      tension: 0.4,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      min: 40,
-                      max: 160,
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
+          {/* Tab Content */}
+          <div className="p-4">
+            {activeTab === "trends" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Heart Rate Chart */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">Heart Rate Trend</h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Line
+                        data={{
+                          labels: historicalData.dates,
+                          datasets: [
+                            {
+                              label: "Heart Rate (BPM)",
+                              data: historicalData.heartRate,
+                              borderColor: "rgb(239, 68, 68)",
+                              backgroundColor: "rgba(239, 68, 68, 0.2)",
+                              fill: true,
+                              tension: 0.4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              min: 60,
+                              max: 100,
+                            },
+                          },
+                          plugins: {
+                            legend: {
+                              display: true,
+                            },
+                            tooltip: {
+                              callbacks: {
+                                label: function (context) {
+                                  return `Heart Rate: ${context.parsed.y} BPM`;
+                                },
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
 
-          {/* Temperature Chart */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">
-              Body Temperature Trend
-            </h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Line
-                data={{
-                  labels: historicalData.dates,
-                  datasets: [
-                    {
-                      label: "Temperature (°C)",
-                      data: historicalData.temperature,
-                      borderColor: "rgb(249, 115, 22)",
-                      backgroundColor: "rgba(249, 115, 22, 0.2)",
-                      fill: true,
-                      tension: 0.4,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      min: 35.5,
-                      max: 37.5,
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
+                  {/* Blood Pressure Chart */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">Blood Pressure Trend</h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Line
+                        data={{
+                          labels: historicalData.dates,
+                          datasets: [
+                            {
+                              label: "Systolic (mmHg)",
+                              data: historicalData.systolic,
+                              borderColor: "rgb(239, 68, 68)",
+                              backgroundColor: "rgba(239, 68, 68, 0.1)",
+                              tension: 0.4,
+                            },
+                            {
+                              label: "Diastolic (mmHg)",
+                              data: historicalData.diastolic,
+                              borderColor: "rgb(59, 130, 246)",
+                              backgroundColor: "rgba(59, 130, 246, 0.1)",
+                              tension: 0.4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              min: 40,
+                              max: 160,
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
 
-          {/* Oxygen Level Chart */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">
-              Oxygen Saturation Trend
-            </h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Line
-                data={{
-                  labels: historicalData.dates,
-                  datasets: [
-                    {
-                      label: "SpO2 (%)",
-                      data: historicalData.oxygen,
-                      borderColor: "rgb(139, 92, 246)",
-                      backgroundColor: "rgba(139, 92, 246, 0.2)",
-                      fill: true,
-                      tension: 0.4,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      min: 90,
-                      max: 100,
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
-        </div>
+                  {/* Temperature Chart */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">
+                      Body Temperature Trend
+                    </h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Line
+                        data={{
+                          labels: historicalData.dates,
+                          datasets: [
+                            {
+                              label: "Temperature (°C)",
+                              data: historicalData.temperature,
+                              borderColor: "rgb(249, 115, 22)",
+                              backgroundColor: "rgba(249, 115, 22, 0.2)",
+                              fill: true,
+                              tension: 0.4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              min: 35.5,
+                              max: 37.5,
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
 
-        {/* Baseline Health Indices */}
-        <h2 className="text-2xl font-bold mb-4">Baseline Health Indices</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Heart Rate Baseline */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">Heart Rate Baseline</h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Bar
-                data={{
-                  labels: ["Minimum", "Average", "Your Baseline", "Maximum"],
-                  datasets: [
-                    {
-                      label: "Heart Rate (BPM)",
-                      data: [
-                        baselineIndices.heartRate.min,
-                        baselineIndices.heartRate.avg,
-                        baselineIndices.heartRate.user,
-                        baselineIndices.heartRate.max,
-                      ],
-                      backgroundColor: [
-                        "rgba(59, 130, 246, 0.6)",
-                        "rgba(16, 185, 129, 0.6)",
-                        "rgba(245, 158, 11, 0.6)",
-                        "rgba(239, 68, 68, 0.6)",
-                      ],
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      min: 40,
-                      max: 120,
-                    },
-                  },
-                  indexAxis: "y",
-                }}
-              />
-            </div>
-          </div>
+                  {/* Oxygen Level Chart */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">
+                      Oxygen Saturation Trend
+                    </h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Line
+                        data={{
+                          labels: historicalData.dates,
+                          datasets: [
+                            {
+                              label: "SpO2 (%)",
+                              data: historicalData.oxygen,
+                              borderColor: "rgb(139, 92, 246)",
+                              backgroundColor: "rgba(139, 92, 246, 0.2)",
+                              fill: true,
+                              tension: 0.4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              min: 90,
+                              max: 100,
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
-          {/* Blood Pressure Baseline */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold mb-2">
-              Blood Pressure Baseline
-            </h3>
-            <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
-              <Bar
-                data={{
-                  labels: ["Minimum", "Average", "Your Baseline", "Maximum"],
-                  datasets: [
-                    {
-                      label: "Systolic (mmHg)",
-                      data: [
-                        baselineIndices.bloodPressure.systolic.min,
-                        baselineIndices.bloodPressure.systolic.avg,
-                        baselineIndices.bloodPressure.systolic.user,
-                        baselineIndices.bloodPressure.systolic.max,
-                      ],
-                      backgroundColor: "rgba(239, 68, 68, 0.6)",
-                    },
-                    {
-                      label: "Diastolic (mmHg)",
-                      data: [
-                        baselineIndices.bloodPressure.diastolic.min,
-                        baselineIndices.bloodPressure.diastolic.avg,
-                        baselineIndices.bloodPressure.diastolic.user,
-                        baselineIndices.bloodPressure.diastolic.max,
-                      ],
-                      backgroundColor: "rgba(59, 130, 246, 0.6)",
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  indexAxis: "y",
-                }}
-              />
-            </div>
+            {activeTab === "baseline" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Heart Rate Baseline */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">Heart Rate Baseline</h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Bar
+                        data={{
+                          labels: ["Minimum", "Average", "Your Baseline", "Maximum"],
+                          datasets: [
+                            {
+                              label: "Heart Rate (BPM)",
+                              data: [
+                                baselineIndices.heartRate.min,
+                                baselineIndices.heartRate.avg,
+                                baselineIndices.heartRate.user,
+                                baselineIndices.heartRate.max,
+                              ],
+                              backgroundColor: [
+                                "rgba(59, 130, 246, 0.6)",
+                                "rgba(16, 185, 129, 0.6)",
+                                "rgba(245, 158, 11, 0.6)",
+                                "rgba(239, 68, 68, 0.6)",
+                              ],
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              min: 40,
+                              max: 120,
+                            },
+                          },
+                          indexAxis: "y",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Blood Pressure Baseline */}
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-2">
+                      Blood Pressure Baseline
+                    </h3>
+                    <div className="h-72 bg-gray-50 rounded-lg flex items-center justify-center p-4">
+                      <Bar
+                        data={{
+                          labels: ["Minimum", "Average", "Your Baseline", "Maximum"],
+                          datasets: [
+                            {
+                              label: "Systolic (mmHg)",
+                              data: [
+                                baselineIndices.bloodPressure.systolic.min,
+                                baselineIndices.bloodPressure.systolic.avg,
+                                baselineIndices.bloodPressure.systolic.user,
+                                baselineIndices.bloodPressure.systolic.max,
+                              ],
+                              backgroundColor: "rgba(239, 68, 68, 0.6)",
+                            },
+                            {
+                              label: "Diastolic (mmHg)",
+                              data: [
+                                baselineIndices.bloodPressure.diastolic.min,
+                                baselineIndices.bloodPressure.diastolic.avg,
+                                baselineIndices.bloodPressure.diastolic.user,
+                                baselineIndices.bloodPressure.diastolic.max,
+                              ],
+                              backgroundColor: "rgba(59, 130, 246, 0.6)",
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          indexAxis: "y",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>
