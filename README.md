@@ -31,6 +31,7 @@ pip install flask flask-cors numpy pandas scikit-learn
 pip install -U thread
 pip install openpyxl
 pip install matplotlib
+pip install seaborn
 ```
 
 ### 3. Simulator Setup
