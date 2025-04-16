@@ -30,6 +30,7 @@ cd CloudProcessor
 pip install flask flask-cors numpy pandas scikit-learn
 pip install -U thread
 pip install openpyxl
+pip install matplotlib
 ```
 
 ### 3. Simulator Setup
